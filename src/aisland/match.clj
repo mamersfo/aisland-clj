@@ -1,70 +1,67 @@
 (ns aisland.match
-  (:require [aisland.http :as http]))
+  (:require [aisland.http :as http]
+            [aisland.constants :refer [POWER_THRESHOLD]]))
 
-;; Actions
+(defn queue
+  []
+  (http/get-json "/queue"))
 
-(def SLEEP       0)
-(def SPREAD      1)
-(def SPREADALL   2)
-(def SPREADLINE  3)
-(def EMPOWER     4) 
-(def DISCHARGE   5)
-(def POWERLINE   6)
-(def OVERCLOCK   7)
-(def GUARD       8)
-(def STORAGE     9)
-(def DRAIN      10)
-(def EXPLODE    11) 
+(defn join
+  [player-id session-token]
+  (Integer/parseInt
+   (:value (http/put-json (str "/queue/" player-id "/" session-token)))))
 
-(def ^:dynamic *match* 1)
-
-(defn matches
+(defn all
   []
   (http/get-json "/matches"))
 
-(defn match
+(defn one
   [id]
   (http/get-json (str "/matches/" id)))
 
-(defn match-rules
-  [id]
-  (http/get-json (str "/matches/" id "/rules")))
-
-(defn match-turn
-  [id]
-  (:value (http/get-json (str "/matches/" id "/turn"))))
-
-(defn match-map
+(defn board
   [id]
   (http/get-json (str "/matches/" id "/map")))
 
-(defn match-players
+(defn players
   [id]
   (http/get-json (str "/matches/" id "/players")))
 
-(defn match-player-moves
-  [match-id player-id]
-  (http/get-json (str "/matches/" match-id "/players/" player-id "/moves")))
-
-;; Moves
-
-(def CENTRAL     0)
-(def NORTH_WEST  1)
-(def NORTH_EAST  2)
-(def WEST        3)
-(def EAST        4)
-(def SOUTH_WEST  5)
-(def SOUTH_EAST  6)
-
 (defn move
-  [{:keys [x y]} p direction]
+  [{:keys [x y]} direction]
   (case direction
-    CENTRAL    {:x x :y y}
-    NORTH_WEST {:x (if (= 0 (mod y 2)) (dec x) x) :y (dec y)}
-    NORTH_EAST {:x (if (= 1 (mod y 2)) (inc x) x) :y (dec y)}
-    WEST       {:x (dec x) :y y}
-    EAST       {:x (inc x) :y y}
-    SOUTH_WEST {:x (if (= 0 (mod y 2)) (dec x) x) :y (inc y)}
-    SOUTH_EAST {:x (if (= 1 (mod y 2)) (inc x) x) :y (inc y)}
+    1 {:x (if (even? y) (dec x) x) :y (dec y)}  ;; NORTH_WEST
+    2 {:x (if (odd? y)  (inc x) x) :y (dec y)}  ;; NORTH_EAST
+    3 {:x (dec x)                  :y y      }  ;; WEST
+    4 {:x (inc x)                  :y y      }  ;; EAST
+    5 {:x (if (even? y) (dec x) x) :y (inc y)}  ;; SOUTH_WEST
+    6 {:x (if (odd? y)  (inc x) x) :y (inc y)}  ;; SOUTH_EAST
+    {:x x :y y}                                 ;; CENTRAL
 ))
 
+(defn- hexagon
+  [m {:keys [x y]}]
+  (when (and (< -1 x (:width m)) (< -1 y (:height m)))
+    (get (:nodes m) (+ x (* y (:width m))))))
+
+(defn post-moves
+  [player-id match-id moves]
+  (if-not (empty? moves)
+    (let [uri (str "/matches/" match-id "/players/" player-id "/moves")]
+      (http/post-json uri moves))))
+
+(defn make-moves
+  [player-id match-id]
+  (let [b (board match-id)]
+    (filter identity
+            (for [x (range 0 (:width b))
+                  y (range 0 (:height b))
+                  :let [p1 {:x x :y y}
+                        n1 (hexagon b p1)]]
+              (when (and (= (:ownerId n1) player-id)
+                         (> (:power n1) POWER_THRESHOLD))
+                (let [d (rand-int 7)
+                      p2 (move p1 d)
+                      n2 (hexagon b p2)]
+                  (when (and n2 (not= (:ownerId n2) player-id))
+                    (assoc p2 :action SPREAD :direction d))))))))

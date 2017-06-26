@@ -1,8 +1,7 @@
 (ns aisland.http
-  (:require [clj-http.client :as http]
+  (:require [aisland.constants :refer [SERVER]]
+            [clj-http.client :as http]
             [cheshire.core :as json]))
-
-(def SERVER "http://localhost:8080")
 
 (defn get-json
   [uri]
