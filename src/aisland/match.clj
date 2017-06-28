@@ -39,7 +39,7 @@
     {:x x :y y}                                 ;; CENTRAL
 ))
 
-(defn- hexagon
+(defn hexagon
   [m {:keys [x y]}]
   (when (and (< -1 x (:width m)) (< -1 y (:height m)))
     (get (:nodes m) (+ x (* y (:width m))))))
@@ -49,19 +49,3 @@
   (if-not (empty? moves)
     (let [uri (str "/matches/" match-id "/players/" player-id "/moves")]
       (http/post-json uri moves))))
-
-(defn make-moves
-  [player-id match-id]
-  (let [b (board match-id)]
-    (filter identity
-            (for [x (range 0 (:width b))
-                  y (range 0 (:height b))
-                  :let [p1 {:x x :y y}
-                        n1 (hexagon b p1)]]
-              (when (and (= (:ownerId n1) player-id)
-                         (> (:power n1) POWER_THRESHOLD))
-                (let [d (rand-int 7)
-                      p2 (move p1 d)
-                      n2 (hexagon b p2)]
-                  (when (and n2 (not= (:ownerId n2) player-id))
-                    (assoc p2 :action SPREAD :direction d))))))))
