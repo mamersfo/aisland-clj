@@ -49,3 +49,8 @@
   (if-not (empty? moves)
     (let [uri (str "/rounds/" match-id "/players/" player-id "/moves" token)]
       (http/post-json uri moves))))
+
+(defn match
+  [player-id]
+  (let [matches (filter (fn [m] (some #(= % player-id) (:playerIds m))) (all))]
+    (first matches)))
