@@ -27,6 +27,8 @@
 
 ;; Comms
 
-(def SERVER "http://localhost:8080")
+;; (def SERVER "http://localhost:8080")
+(def SERVER "http://172.16.32.50:8080")
+
 (def TURN_DURATION_MILLIS 500)
 (def POWER_THRESHOLD 30)

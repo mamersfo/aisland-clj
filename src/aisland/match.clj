@@ -7,25 +7,25 @@
   (http/get-json "/queue"))
 
 (defn join
-  [player-id session-token]
+  [player-id token]
   (Integer/parseInt
-   (:value (http/put-json (str "/queue/" player-id "/" session-token)))))
+   (:value (http/put-json (str "/queue/" player-id "/" token)))))
 
 (defn all
   []
-  (http/get-json "/matches"))
+  (http/get-json "/rounds"))
 
 (defn one
   [id]
-  (http/get-json (str "/matches/" id)))
+  (http/get-json (str "/rounds/" id)))
 
 (defn board
   [id]
-  (http/get-json (str "/matches/" id "/map")))
+  (http/get-json (str "/rounds/" id "/map")))
 
 (defn players
   [id]
-  (http/get-json (str "/matches/" id "/players")))
+  (http/get-json (str "/rounds/" id "/players")))
 
 (defn move
   [{:keys [x y]} direction]
@@ -45,7 +45,7 @@
     (get (:nodes m) (+ x (* y (:width m))))))
 
 (defn post-moves
-  [player-id match-id moves]
+  [player-id match-id token moves]
   (if-not (empty? moves)
-    (let [uri (str "/matches/" match-id "/players/" player-id "/moves")]
+    (let [uri (str "/rounds/" match-id "/players/" player-id "/moves" token)]
       (http/post-json uri moves))))

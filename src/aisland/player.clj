@@ -17,5 +17,5 @@
   [{:keys [name email password] :as user}]
   (let [resp (http/post-json "/players/login" user)]
     (assoc user
-           :session-token (:value resp)
+           :token (:value resp)
            :player-id (player-id name))))
